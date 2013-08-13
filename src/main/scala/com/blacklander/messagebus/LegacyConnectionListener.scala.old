@@ -1,0 +1,97 @@
+//package com.blacklander.messagebus
+//import scala.actors.{Actor,TIMEOUT}
+//import java.nio.channels.Selector
+//import java.nio.channels.ServerSocketChannel
+//import java.net.InetSocketAddress
+//import java.nio.channels.SelectionKey
+//import java.nio.channels.SocketChannel
+//import java.nio.ByteBuffer
+//
+//import com.blacklander.messagebus.Constants._
+//import com.blacklander.messagebus.Constants.Messages._
+//
+//class LegacyConnectionListener(port: Int, defaultGame: Actor) extends Actor{
+//    
+//    var running:Boolean = false
+//    
+//	def act() {
+//	    val s:Selector = Selector.open()
+//	    val ssc:ServerSocketChannel = ServerSocketChannel.open()
+//	    ssc.configureBlocking(false)
+//	    val address = new InetSocketAddress(port)
+//	    val ss = ssc.socket()
+//	    ss.bind(address)
+//	    ss.setReuseAddress(true)
+//	    
+//	    //SelectionKey key = ssc.register( selector, SelectionKey.OP_ACCEPT );
+//	    var key = ssc.register(s, SelectionKey.OP_ACCEPT)
+//	    //allocate buffer for reads: 1M
+//	    val readBuffer = ByteBuffer.allocateDirect(1024 * 1024)
+//	    
+//	    running = true
+//	    while(running){
+//	        receiveWithin(1) ({
+//	            case ExitSignal() => {
+//	                println("ConnectionListener shutting down")
+//	                running = false
+//	                //SHUTDOWN!!!
+//	                val it = s.keys().iterator()
+//	                while(it.hasNext()){
+//	                    val channel = it.next().channel()
+//	                    channel.close()
+//	                }
+//	                ss.close()
+//	                defaultGame ! ExitSignal()
+//	                println("ConnectionListener shutdown complete")
+//	            }
+//	            case TIMEOUT => // do nothing
+//	        })
+//	        if(running) {
+//	            s.select()
+//		        val selectedKeys = s.selectedKeys()
+//		        val it = selectedKeys.iterator()
+//		        while(it.hasNext()){
+//		            key = it.next()
+//		            if ((key.readyOps() & SelectionKey.OP_ACCEPT)
+//						== SelectionKey.OP_ACCEPT) {
+//		                println("Creating new connection handler")
+//						// Accept the new connection
+//		                val channel = key.channel().asInstanceOf[ServerSocketChannel]
+//						val sc = channel.accept();
+//						sc.configureBlocking(false)
+//						//TODO: create new connection handler
+//						val connectionHandler = new LegacyConnectionHandler(sc, defaultGame)
+//						//println("New connection starting")
+//						connectionHandler.start()
+//						//println("New connection started")
+//						//register key for OP_READ
+//						sc.register(s, SelectionKey.OP_READ).attach(connectionHandler)
+//						
+//		            } else if ((key.readyOps() & SelectionKey.OP_READ)
+//		                == SelectionKey.OP_READ) {
+//		                //println("ConnectionListener read")
+//		                val channel = key.channel().asInstanceOf[SocketChannel]
+//		                val connectionHandler = key.attachment().asInstanceOf[Actor]
+//		                try {
+//		                    val messageBytes = Util.readBytes(channel, readBuffer)
+//			                if(messageBytes.length > 0){
+//				                connectionHandler ! ReadSignal(messageBytes)
+//			            	}
+//		                } catch {
+//		                    case ex: Exception => {
+//		                        println("Unexpected disconnect")
+//		                        //this may need to bounce back with a username from the connection handler
+//		                        connectionHandler ! ExternalMessage(this, Map(MessageType -> Disconnect), None)
+//		                        connectionHandler ! ExitSignal()
+//		                        key.cancel()
+//		                        
+//		                    }
+//		                }
+//		            }
+//	                it.remove()
+//		        }
+//	        }
+//	        
+//	    }
+//	}
+//}

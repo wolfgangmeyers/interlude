@@ -1,0 +1,97 @@
+//package com.blacklander.messagebus
+//import scala.actors.Actor
+//import java.nio.channels.SocketChannel
+//import java.nio.channels.Selector
+//import java.nio.channels.SelectionKey
+//import java.nio.ByteBuffer
+//import Util._
+//import Constants._
+//import Constants.Messages._
+//
+//class LegacyConnectionHandler(sc: SocketChannel, private var game: Actor) extends Actor{
+//    println("ConnectionHandler created")
+//	val buff = ByteBuffer.allocateDirect(4096)
+//	var userName: Option[String] = None
+//	var connected = true
+//	
+//	def act() {
+//        val sender = this
+//	    react {
+//	        case ReadSignal(messageBytes) => {
+//	            //inject userName if we have it...
+//	            val messages = parseMessages(messageBytes).map(message => {
+//	                ExternalMessage(
+//	                    sender, 
+//	                    userName match {
+//	                        case Some(name) => message._1 + (UserName -> name)
+//	                        case None => message._1
+//	                    },
+//	                    message._2
+//	                )
+//	            })
+//	            
+//	            messages foreach { message =>
+//	                //println("ConnectionHandler: Handling message")
+//	                game ! message
+//	                message.messageType match {
+//	                    //this represents an expected disconnect,
+//	                    //because the client explicitly indicated a desire to close the connection
+//	                    case Disconnect => {
+//	                        connected = false
+//	                        sc.close()
+//	                    }
+//	                    case _ => //do nothing
+//	                }
+//	            }
+//	            if(connected){
+//	            	act()
+//	            }
+//	        }
+//	        case msg: ExternalMessage => {
+//	            println("ConnectionHandler writing message: " + msg.messageType)
+//	            msg.messageType match {
+//	                //some of these messages get fired back to the handler
+//	                //LoginSuccess lets us know that the userName of the login is valid
+//	                //Disconnect represents a potential unexpected Disconnect
+//	                //(connected == true will indicate that it wasn't expected,
+//	                //the client deliberately closed the connection)
+//	                //in this case, the connection handler will fire the same
+//	                //disconnect event with username added
+//	                case Disconnect => {
+//	                    (userName, connected) match {
+//	                        case (Some(name), true) => {
+//	                            connected = false
+//	                            game ! msg.copy(headers=msg.headers + (UserName -> name))
+//	                        }
+//	                        case _ => //no need to handle disconnect with no login...
+//	                    }
+//	                }
+//	                //TODO: figure out how to avoid code duplication here
+//	                case LoginSuccess => {
+//	                    userName = msg.userName
+//	                    if(connected){
+//		                    writeMessage(msg, sc, buff)
+//		                    act()
+//	                    }
+//	                }
+//	                case Hello => {
+//	                    msg.sender ! ExternalMessage(
+//	                        this, Map(MessageType -> Hello), None
+//	                    )
+//	                }
+//	                case _ => {
+//	                    if(connected){
+//		                    writeMessage(msg, sc, buff)
+//		                    act()
+//	                    }
+//	                }
+//	            }
+//	        }
+//	        case msg: ExitSignal => {
+//	           connected = false
+//	           println("ConnectionHandler ExitSignal")
+//	           sc.close()
+//	        }
+//	    }
+//	}
+//}
