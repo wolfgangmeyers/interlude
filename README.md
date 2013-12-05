@@ -13,5 +13,6 @@ the game logic) is provided out of the box. When I have time, I will add more ex
 
 Roadmap:
 
+* Retrofit to use akka/spray.io instead of netty/scala-actors
 * Introduce spring framework for wiring up components
 * Implement an example multiplayer game that uses Interlude
